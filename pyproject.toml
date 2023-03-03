@@ -17,3 +17,6 @@ pytest = "^7.2.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+keepass2netrc = "keepass2netrc.keepass_to_netrc:main"

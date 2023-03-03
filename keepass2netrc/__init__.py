@@ -1,14 +1,12 @@
+import logging
 import pathlib
 import pykeepass
 import typing
-
-from jinja2 import Template
 
 
 DEFAULT_TAGS = ["netrc"]
 
 NETRC_ENTRY_TEMPLATE = "machine {}\tlogin {}\tpassword {}\n"
-INVALID_NETRC_ENTRY_TEMPLATE = "# machine {}\tlogin {}\tpassword {}\n"
 
 
 class MissingFieldException(Exception):
@@ -21,17 +19,18 @@ class KeepassNetrc:
     def __init__(self, db_path: pathlib.Path, password: str):
         self.db_path = db_path
         self.password = password
-        self.db = pykeepass.PyKeePass(db_path, password)
+        self.db = self.open_db()
 
-    # def open_db(db_path: pathlib.Path, password: str) -> pykeepass.PyKeePass:
-    #     """
-    #     Open the given KeePass database using the given password.
+    def open_db(self) -> pykeepass.PyKeePass:
+        """
+        Open the given KeePass database using the given password.
 
-    #     :param pathlib.Path db_path: path to the KeePass database
-    #     :param str password: password of the KeePass database
-    #     :return pykeepass.PyKeePass: an open KeePass database
-    #     """
-    #     return pykeepass.PyKeePass(db_path, password)
+        :param pathlib.Path db_path: path to the KeePass database
+        :param str password: password of the KeePass database
+        :return pykeepass.PyKeePass: an open KeePass database
+        """
+        logging.debug("Openning database: %s", self.db_path)
+        return pykeepass.PyKeePass(self.db_path, self.password)
 
     def get_netrc_entry_str(self, entry: pykeepass.entry.Entry) -> str:
         missing_fields: typing.List[str] = []
@@ -44,12 +43,16 @@ class KeepassNetrc:
             missing_fields.append("password")
 
         if missing_fields:
-            raise MissingFieldException("Entry  missing field(s)", missing_fields)
+            raise MissingFieldException(
+                "Entry  missing field(s)", missing_fields
+            )
 
-        return NETRC_ENTRY_TEMPLATE.format(entry.url, entry.username, entry.password)
+        return NETRC_ENTRY_TEMPLATE.format(
+            entry.url, entry.username, entry.password
+        )
 
     def get_netrc_entries(
-        db: pykeepass.PyKeePass, tags: typing.List[str] = DEFAULT_TAGS
+        self, tags: typing.List[str] = DEFAULT_TAGS
     ) -> typing.List[pykeepass.entry.Entry]:
         """
         Get all entries from the given KeePass database that contain the given
@@ -60,17 +63,34 @@ class KeepassNetrc:
         :return list[pykeepass.entry.Entry]: list of entries that contain the exact
             same tags as in the passed tags list
         """
-        for entry in db.entries:
-            if entry.tags and (set(tags) == set(entry.tags)):
-                print(entry)
+        netrc_entries = []
+        tags_set = set(tags)
 
-            # return sorted(entries, key=lambda e: e.url)
+        logging.debug("self.db.entries: %s", self.db.entries)
+        for entry in self.db.entries:
+            logging.debug("entry: %s, entry.tags: %s", entry, entry.tags)
 
-    def write_netrc(entries: typing.List[pykeepass.entry.Entry]) -> None:
-        print(entries)
+            if entry.tags and tags_set == set(entry.tags):
+                logging.debug("included entry: %s", entry)
+                netrc_entries.append(entry)
 
-        with open("netrc", "w") as netrc:
-            for entry in entries:
+        netrc_entries = sorted(netrc_entries, key=lambda e: e.url)
+
+        logging.debug("included netrc entries: %s", netrc_entries)
+
+        return netrc_entries
+
+    def write_netrc(
+        self,
+        netrc_file: pathlib.Path,
+        tags: typing.List[str] = DEFAULT_TAGS,
+        backup: bool = True,
+    ) -> None:
+        if netrc_file.exists():
+            logging.warning("netrc_file exists: %s", netrc_file)
+
+        with open(netrc_file, "w") as netrc:
+            for entry in self.get_netrc_entries(tags):
                 netrc.write(
                     NETRC_ENTRY_TEMPLATE.format(
                         entry.url, entry.username, entry.password

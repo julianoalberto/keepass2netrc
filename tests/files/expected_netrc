@@ -1,0 +1,3 @@
+machine host1.com	login user1	password pass1
+machine host2.com	login user2	password pass2
+machine host3.com	login user3	password pass3

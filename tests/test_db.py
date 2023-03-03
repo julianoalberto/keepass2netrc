@@ -1,4 +1,5 @@
 import keepass2netrc
+import logging
 import pykeepass
 import pytest
 
@@ -141,6 +142,7 @@ def create_test_db(path, entries):
             url=entry["url"],
             tags=entry["tags"],
         )
+    db.save()
     return db
 
 
@@ -156,7 +158,10 @@ def test_get_netrc_entry_str_valid(tmp_path):
             url=test_entry["url"],
             kp=db,
         )
-        assert keepass_netrc.get_netrc_entry_str(entry) == test_entry["expected_str"]
+        assert (
+            keepass_netrc.get_netrc_entry_str(entry)
+            == test_entry["expected_str"]
+        )
 
 
 def test_get_netrc_entry_str_invalid(tmp_path):
@@ -179,5 +184,38 @@ def test_get_netrc_entry_str_invalid(tmp_path):
 
 
 def test_get_netrc_entries(tmp_path):
-    db = create_test_db(path=tmp_path, entries=VALID_TEST_ENTRIES)
+    create_test_db(path=tmp_path, entries=VALID_TEST_ENTRIES)
     keepass_netrc = KeepassNetrc(tmp_path / DB_NAME, DB_PASSWORD)
+    netrc_entries = keepass_netrc.get_netrc_entries()
+
+    assert len(netrc_entries) == len(EXPECTED_NETRC_ENTRIES)
+
+    for netrc_entry in netrc_entries:
+        # entry must have tags
+        assert netrc_entry.tags is not None
+        # tags must contain only one tag: netrc
+        assert set(netrc_entry.tags) == {"netrc"}
+
+
+def test_write_netrc(tmp_path):
+    create_test_db(path=tmp_path, entries=VALID_TEST_ENTRIES)
+    keepass_netrc = KeepassNetrc(tmp_path / DB_NAME, DB_PASSWORD)
+
+    netrc_file = tmp_path / "netrc"
+    logging.warning("netrc_file: %s", netrc_file)
+
+    keepass_netrc.write_netrc(netrc_file)
+
+    assert netrc_file.exists()
+
+    with open("tests/files/expected_netrc", "r") as expected:
+        expected_netrc_lines = expected.readlines()
+
+    logging.warning(expected_netrc_lines)
+
+    with open(netrc_file, "r") as generated:
+        generated_netrc_lines = generated.readlines()
+
+    logging.warning(generated_netrc_lines)
+
+    assert expected_netrc_lines == expected_netrc_lines
