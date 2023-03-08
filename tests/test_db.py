@@ -183,8 +183,47 @@ def test_get_netrc_entry_str_invalid(tmp_path):
         assert exc.value.args[1] == test_entry["missing_fields"]
 
 
+def test__validate_entry_valid(tmp_path):
+    db = create_test_db(path=tmp_path, entries=VALID_TEST_ENTRIES)
+    keepass_netrc = KeepassNetrc(tmp_path / DB_NAME, DB_PASSWORD)
+
+    for entry in db.entries:
+        try:
+            keepass_netrc._validate_entry(entry)
+        except MissingFieldException as exc:
+            assert (
+                False
+            ), f"MissingFieldException not expected for entry: {entry}"
+
+
+def test__validate_entry_invalid(tmp_path):
+    db = create_test_db(path=tmp_path, entries=INVALID_TEST_ENTRIES)
+    keepass_netrc = KeepassNetrc(tmp_path / DB_NAME, DB_PASSWORD)
+
+    for db_entry, test_entry in zip(db.entries, INVALID_TEST_ENTRIES):
+        with pytest.raises(MissingFieldException) as exc:
+            keepass_netrc._validate_entry(db_entry)
+            assert exc.value.args[1] == test_entry["missing_fields"]
+
+
 def test_get_netrc_entries(tmp_path):
     create_test_db(path=tmp_path, entries=VALID_TEST_ENTRIES)
+    keepass_netrc = KeepassNetrc(tmp_path / DB_NAME, DB_PASSWORD)
+    netrc_entries = keepass_netrc.get_netrc_entries()
+
+    assert len(netrc_entries) == len(EXPECTED_NETRC_ENTRIES)
+
+    for netrc_entry in netrc_entries:
+        # entry must have tags
+        assert netrc_entry.tags is not None
+        # tags must contain only one tag: netrc
+        assert set(netrc_entry.tags) == {"netrc"}
+
+
+def test_get_netrc_entries_invalid(tmp_path):
+    create_test_db(
+        path=tmp_path, entries=(VALID_TEST_ENTRIES + INVALID_TEST_ENTRIES)
+    )
     keepass_netrc = KeepassNetrc(tmp_path / DB_NAME, DB_PASSWORD)
     netrc_entries = keepass_netrc.get_netrc_entries()
 

@@ -51,6 +51,21 @@ class KeepassNetrc:
             entry.url, entry.username, entry.password
         )
 
+    def _validate_entry(self, entry: pykeepass.entry.Entry):
+        missing_fields: typing.List[str] = []
+
+        if not entry.url:
+            missing_fields.append("url")
+        if not entry.username:
+            missing_fields.append("username")
+        if not entry.password:
+            missing_fields.append("password")
+
+        if missing_fields:
+            raise MissingFieldException(
+                "Invalid entry", "Missing field(s)", missing_fields
+            )
+
     def get_netrc_entries(
         self, tags: typing.List[str] = DEFAULT_TAGS
     ) -> typing.List[pykeepass.entry.Entry]:
@@ -71,9 +86,17 @@ class KeepassNetrc:
             logging.debug("entry: %s, entry.tags: %s", entry, entry.tags)
 
             if entry.tags and tags_set == set(entry.tags):
-                logging.debug("included entry: %s", entry)
-                netrc_entries.append(entry)
-
+                try:
+                    self._validate_entry(entry)
+                    netrc_entries.append(entry)
+                    logging.debug("included entry: %s", entry)
+                except MissingFieldException as exc:
+                    logging.warning(
+                        "entry not included: %s / missing fields: %s",
+                        entry,
+                        exc.args[2],
+                    )
+        logging.debug("included netrc entries: %s", netrc_entries)
         netrc_entries = sorted(netrc_entries, key=lambda e: e.url)
 
         logging.debug("included netrc entries: %s", netrc_entries)
@@ -91,8 +114,4 @@ class KeepassNetrc:
 
         with open(netrc_file, "w") as netrc:
             for entry in self.get_netrc_entries(tags):
-                netrc.write(
-                    NETRC_ENTRY_TEMPLATE.format(
-                        entry.url, entry.username, entry.password
-                    )
-                )
+                netrc.write(self.get_netrc_entry_str(entry))
