@@ -85,7 +85,18 @@ class KeepassNetrc:
         for entry in self.db.entries:
             logging.debug("entry: %s, entry.tags: %s", entry, entry.tags)
 
-            if entry.tags and tags_set == set(entry.tags):
+            # pykeepass.entry.Entry.tags holds a list with a single string
+            # separated by commas, like ['tag1,tag2'], instead of a list with
+            # one string per tag, like ['tag1', 'tag2'].
+            #
+            # So it is necessary to convert it with:
+            #   set(entry.tags[0].split(",")
+            logging.debug(
+                "tags_set: %s | set(entry.tags): %s",
+                tags_set,
+                set(entry.tags[0].split(",")),
+            )
+            if entry.tags and tags_set == set(entry.tags[0].split(",")):
                 try:
                     self._validate_entry(entry)
                     netrc_entries.append(entry)
