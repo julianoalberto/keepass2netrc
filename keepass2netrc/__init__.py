@@ -91,13 +91,11 @@ class KeepassNetrc:
             #
             # So it is necessary to convert it with:
             #   set(entry.tags[0].split(",")
-            logging.debug(
-                "tags_set: %s | set(entry.tags): %s",
-                tags_set,
-                set(entry.tags[0].split(",")),
-            )
-            if entry.tags and tags_set == set(entry.tags[0].split(",")):
+            entry_tags_list = entry.tags[0].split(",")
+            if entry.tags and tags_set == set(entry_tags_list):
                 try:
+                    logging.warning("entry.tags     : %s", entry.tags)
+                    logging.warning("entry_tags_list: %s", entry_tags_list)
                     self._validate_entry(entry)
                     netrc_entries.append(entry)
                     logging.debug("included entry: %s", entry)

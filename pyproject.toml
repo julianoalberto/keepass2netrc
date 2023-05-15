@@ -6,6 +6,10 @@ authors = ["Juliano Gonçalves <julianoalberto@gmail.com>"]
 license = "MIT"
 readme = "README.md"
 
+[tool.pytest.ini_options]
+log_cli = true
+log_cli_level = "DEBUG"
+
 [tool.poetry.dependencies]
 python = "^3.8"
 pykeepass = "^4.0.3"
@@ -19,4 +23,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-keepass2netrc = "keepass2netrc.keepass_to_netrc:main"
+keepass2netrc = "keepass2netrc.cli:run"

@@ -94,6 +94,30 @@ EXPECTED_NETRC_ENTRIES = [
     },
 ]
 
+EXPECTED_NETRC_ENTRIES_MULTI_TAGS = [
+    {
+        "title": "ntrc_in_1",
+        "username": "user1",
+        "password": "pass1",
+        "url": "host1.com",
+        "tags": ["netrc", "tech"],
+    },
+    {
+        "title": "ntrc_in_2",
+        "username": "user2",
+        "password": "pass2",
+        "url": "host2.com",
+        "tags": ["netrc"],
+    },
+    {
+        "title": "ntrc_in_3",
+        "username": "user3",
+        "password": "pass3",
+        "url": "host3.com",
+        "tags": ["netrc"],
+    },
+]
+
 INVALID_TEST_ENTRIES = [
     {
         "title": "no_user",
